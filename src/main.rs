@@ -4,6 +4,7 @@ use tokio::{
 };
 use tokio_stream::StreamExt;
 use tokio_util::codec::{Framed, LinesCodec};
+use tracing_subscriber::{fmt::format::FmtSpan, EnvFilter};
 
 use futures::SinkExt;
 use std::{
@@ -17,10 +18,9 @@ use std::{
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    use tracing_subscriber::{fmt::format::FmtSpan, EnvFilter};
 
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env().add_directive("chat=info".parse()?))
+        //.with_env_filter(EnvFilter::from_default_env().add_directive("chat=info".parse()?))
         .with_span_events(FmtSpan::FULL)
         .init();
 
