@@ -4,7 +4,8 @@ use tokio::{
 };
 use tokio_stream::StreamExt;
 use tokio_util::codec::{Framed, LinesCodec};
-use tracing_subscriber::{fmt::format::FmtSpan, EnvFilter};
+use tracing_subscriber::{fmt::format::FmtSpan};
+use tracing::{info, debug, error};
 
 use futures::SinkExt;
 use std::{
@@ -20,7 +21,6 @@ use std::{
 async fn main() -> Result<(), Box<dyn Error>> {
 
     tracing_subscriber::fmt()
-        //.with_env_filter(EnvFilter::from_default_env().add_directive("chat=info".parse()?))
         .with_span_events(FmtSpan::FULL)
         .init();
 
@@ -32,15 +32,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let listener = TcpListener::bind(&addr).await?;
 
-    tracing::info!("server running on {}", addr);
+    info!("server running on {}", addr);
 
     loop {
         let (stream, addr) = listener.accept().await?;
         let state = Arc::clone(&state);
         tokio::spawn(async move {
-            tracing::debug!("accepted connection");
+            debug!("accepted connection");
             if let Err(e) = process(state, stream, addr).await {
-                tracing::info!("an error occurred; error = {:?}", e);
+                info!("an error occurred; error = {:?}", e);
             }
         });
     }
@@ -94,7 +94,7 @@ async fn process(
     let username = match lines.next().await {
         Some(Ok(line)) => line,
         _ => {
-            tracing::error!("Failed to get username from {}. Client disconnected.", addr);
+            error!("Failed to get username from {}. Client disconnected.", addr);
             return Ok(());
         }
     };
@@ -104,7 +104,7 @@ async fn process(
     {
         let mut state = state.lock().await;
         let msg = format!("{} has joined the chat", username);
-        tracing::info!("{}", msg);
+        info!("{}", msg);
         state.broadcast(addr, &msg).await;
     }
 
@@ -125,7 +125,7 @@ async fn process(
                     state.broadcast(addr, &msg).await;
                 }
                 Some(Err(e)) => {
-                    tracing::error!{
+                    error!{
                         "An error occurred while processing messages for {}; error = {:?}",
                         username,
                         e
@@ -142,7 +142,7 @@ async fn process(
         let mut state = state.lock().await;
         state.peers.remove(&addr);
         let msg = format!("{} has left the chat", username);
-        tracing::info!("{}", msg);
+        info!("{}", msg);
         state.broadcast(addr, &msg).await;
     }
 
